@@ -1,49 +1,66 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
-use crossterm::event::{Event, KeyCode};
+use ratatui::crossterm::event::{Event, KeyCode};
 use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::widgets::{Block, ListState, Paragraph, StatefulWidget, Widget};
+use ratatui::widgets::Widget;
 
+mod app_traits;
+mod app_structs;
 mod body;
+mod footer;
+mod menu;
 
 use body::AppBody;
-
-#[derive(Default, PartialEq, Eq, Hash)]
-enum ActiveAppWindow {
-    Header,
-    Footer,
-    #[default]
-    Body,
-}
+use footer::AppFooter;
+use menu::AppMenu;
+use app_traits::*;
 
 pub struct App {
     pub quit: bool,
     dir: Direction,
-    app_components: HashMap<ActiveAppWindow, AppBody>,
+    app_components: HashMap<ActiveAppWindow, Box<dyn AppComponent>>,
     active_window: ActiveAppWindow,
+    // #[allow(dead_code)] // Kept alive to maintain Rc reference count for shared state
+    // string_logs: Rc<RefCell<Vec<String>>>,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl App {
     pub fn new() -> Self {
-        let app_components = HashMap::from([
-            (
-                ActiveAppWindow::Header,
-                AppBody::new("HeaderText".to_owned(), false),
-            ),
-            (
-                ActiveAppWindow::Body,
-                AppBody::new("BodyText".to_owned(), true),
-            ),
-            (
-                ActiveAppWindow::Footer,
-                AppBody::new("FooterText".to_owned(), false),
-            ),
-        ]);
+        let ref_string_logs = Rc::new(RefCell::new(Vec::new()));
         Self {
             quit: false,
             dir: Direction::Vertical,
-            app_components,
+            app_components: HashMap::from([
+                (
+                    ActiveAppWindow::Header,
+                    Box::new(AppBody::new(false, Rc::clone(&ref_string_logs)))
+                        as Box<dyn AppComponent>,
+                ),
+                (
+                    ActiveAppWindow::Menu,
+                    Box::new(AppMenu::new()) as Box<dyn AppComponent>
+                ),
+                (
+                    ActiveAppWindow::Body,
+                    Box::new(AppBody::new(true, Rc::clone(&ref_string_logs)))
+                        as Box<dyn AppComponent>,
+                ),
+                (
+                    ActiveAppWindow::Footer,
+                    Box::new(AppFooter::new(false, Rc::clone(&ref_string_logs)))
+                        as Box<dyn AppComponent>,
+                ),
+            ]),
             active_window: ActiveAppWindow::Body,
+            // string_logs: ref_string_logs,
         }
     }
 
@@ -60,17 +77,29 @@ impl App {
     }
 
     pub fn handle_events(&mut self, event: Event) {
-        match event {
-            Event::Key(k) => match k.code {
-                KeyCode::Char('q') => self.quit = true,
-                KeyCode::Char('v') => self.dir = Direction::Vertical,
-                KeyCode::Char('h') => self.dir = Direction::Horizontal,
-                KeyCode::Char('1') => self.set_window_active(ActiveAppWindow::Header),
-                KeyCode::Char('2') => self.set_window_active(ActiveAppWindow::Body),
-                KeyCode::Char('3') => self.set_window_active(ActiveAppWindow::Footer),
-                _ => {}
-            },
-            _ => {}
+
+        let mut event_handled: Option<Event> = None;
+
+        /* Forward events to Active Window and process them only if they are not handled inside */
+        if let Some(component) = self.app_components.get_mut(&self.active_window) {
+            event_handled = component.handle_event(event);
+        }
+
+        if let Some(event) = event_handled {
+            if let Event::Key(k) = event {
+                match k.code {
+                    KeyCode::Char('q') => self.quit = true,
+                    KeyCode::Char('v') => self.dir = Direction::Vertical,
+                    KeyCode::Char('h') => self.dir = Direction::Horizontal,
+                    KeyCode::Char('1') => self.set_window_active(ActiveAppWindow::Header),
+                    KeyCode::Char('2') => self.set_window_active(ActiveAppWindow::Body),
+                    KeyCode::Char('3') => self.set_window_active(ActiveAppWindow::Footer),
+                    KeyCode::Char('4') => self.set_window_active(ActiveAppWindow::Menu),
+                    _ => {
+
+                    }
+                }
+            }
         }
     }
 }
@@ -87,12 +116,20 @@ impl Widget for &mut App {
         ];
         let l = Layout::vertical(layout).direction(self.dir);
         let [top, middle, bottom] = l.areas(area);
-        
-        for (k,v) in self.app_components.iter_mut() {
+
+        let layout_body_menu =  [
+            Constraint::Fill(1),
+            Constraint::Fill(9)
+        ];
+
+        let [menu, body] = Layout::horizontal(layout_body_menu).areas(middle);
+
+        for (k, v) in self.app_components.iter_mut() {
             match k {
-                ActiveAppWindow::Header => v.render(top, buf),   
-                ActiveAppWindow::Body => v.render(middle, buf),   
-                ActiveAppWindow::Footer => v.render(bottom, buf),   
+                ActiveAppWindow::Header => v.render(top, buf),
+                ActiveAppWindow::Body => v.render(body, buf),
+                ActiveAppWindow::Menu => v.render(menu, buf),
+                ActiveAppWindow::Footer => v.render(bottom, buf),
             }
         }
     }
