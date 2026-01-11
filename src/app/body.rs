@@ -65,11 +65,6 @@ impl<'a> AppComponent for AppBody<'a> {
 
 impl<'a> AppBody<'a> {
     pub fn new(is_active: bool, string_logs: Rc<RefCell<Vec<String>>>) -> Self {
-        // let body_items = Vec::from([
-        //     StudentListItem::default(),
-        //     StudentListItem::default(),
-        //     StudentListItem::default(),
-        // ]);
 
         let body_items = student_list_vec(&Path::new("./student-dataset.csv")).unwrap();
 
@@ -131,6 +126,10 @@ impl<'a> AppBody<'a> {
                         self.textarea.input(event);
                         return None;
                     },
+                    KeyCode::Enter => {
+                        let lines  = self.textarea.lines();
+                        self.body_items.iter().for_each(|i| i.name.find(lines[0]));
+                    }
                     _ => {}
                 }
             }

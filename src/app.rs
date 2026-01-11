@@ -11,6 +11,7 @@ mod app_structs;
 mod body;
 mod footer;
 mod menu;
+mod data_model;
 
 use body::AppBody;
 use footer::AppFooter;
