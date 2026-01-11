@@ -71,7 +71,7 @@ impl<'a> AppBody<'a> {
         //     StudentListItem::default(),
         // ]);
 
-        let body_items = student_list_vec(&Path::new("/Users/vignesh/Documents/Rust/student-dataset.csv")).unwrap();
+        let body_items = student_list_vec(&Path::new("./student-dataset.csv")).unwrap();
 
         Self {
             body_items,
@@ -96,10 +96,6 @@ impl<'a> AppBody<'a> {
             .enumerate()
             .map(|(i, val)| {
                 ListItem::from(val)
-                // let idx_line = Line::from(Span::from(format!("{}.", i)).blue().italic().bold());
-                // let name_line = Line::from(Span::from(&val.name).blue().bold());
-                // let text = Text::from(vec![idx_line, name_line]);
-                // ListItem::from(text)
             })
             .collect::<Vec<_>>();
 
@@ -128,10 +124,14 @@ impl<'a> AppBody<'a> {
 
     fn handle_popup_event(&mut self, event: Event) -> Option<Event> {
         if self.show_popup {
-            if let Event::Key(key ) = &event {
-                if let KeyCode::Char(_) = key.code {
-                    self.textarea.input(event);
-                    return None;
+            if let Event::Key(key) = &event {
+                match key.code
+                {
+                    KeyCode::Char(_) | KeyCode::Backspace => {
+                        self.textarea.input(event);
+                        return None;
+                    },
+                    _ => {}
                 }
             }
         }
