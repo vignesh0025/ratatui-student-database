@@ -7,7 +7,7 @@ use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::ListItem;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
 pub enum Gender {
     #[default]
     M,
@@ -20,7 +20,7 @@ impl std::fmt::Display for Gender {
         write!(f, "{:?}", self)
     }
 }
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct StudentListItem {
     // pub class: Class,
     pub id: u32,

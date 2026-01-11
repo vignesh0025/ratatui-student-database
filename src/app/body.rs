@@ -3,8 +3,9 @@ use ratatui::{
     layout::{Constraint, Flex, Layout, Rect}, style::{Color, Modifier, Style, Styled, Stylize}, text::{Line, Span, Text}, widgets::{Block, Clear, List, ListItem, ListState, Paragraph, StatefulWidget, Widget}
 };
 
-use crate::app::AppComponent;
+use crate::app::{AppComponent, data_model};
 use crate::app::app_structs::{Class, StudentListItem, student_list_vec};
+use crate::app::data_model::DataModel;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -14,12 +15,12 @@ use tui_textarea::{Input, Key, TextArea};
 
 #[derive(Default)]
 pub struct AppBody<'a> {
-    body_items: Vec<StudentListItem>,
     body_state: ListState,
     is_active: bool,
     string_logs: Rc<RefCell<Vec<String>>>,
     show_popup: bool,
-    textarea: TextArea<'a>
+    textarea: TextArea<'a>,
+    data_model: DataModel
 }
 
 impl<'a> AppComponent for AppBody<'a> {
@@ -43,7 +44,7 @@ impl<'a> AppComponent for AppBody<'a> {
                     KeyCode::Down => self.body_state.select_next(),
                     KeyCode::Enter => {
                         if let Some(e) = self.body_state.selected() {
-                            if let Some(s) = self.body_items.get(e) {
+                            if let Some(s) = self.data_model.data_items.get(e) {
                                 // self.string_logs.borrow_mut().push(s.clone());
                             }
                         }
@@ -66,15 +67,15 @@ impl<'a> AppComponent for AppBody<'a> {
 impl<'a> AppBody<'a> {
     pub fn new(is_active: bool, string_logs: Rc<RefCell<Vec<String>>>) -> Self {
 
-        let body_items = student_list_vec(&Path::new("./student-dataset.csv")).unwrap();
-
+        // let body_items = student_list_vec(&Path::new("./student-dataset.csv")).unwrap();
+        let data_model = DataModel::new(&Path::new("./student-dataset.csv"), data_model::DataType::CsvBin).unwrap();
         Self {
-            body_items,
             body_state: ListState::default().with_selected(Some(0)),
             is_active,
             string_logs,
             show_popup: false,
-            textarea: TextArea::default()
+            textarea: TextArea::default(),
+            data_model
         }
     }
 
@@ -86,7 +87,7 @@ impl<'a> AppBody<'a> {
         }
 
         let items = self
-            .body_items
+            .data_model.data_items
             .iter()
             .enumerate()
             .map(|(i, val)| {
@@ -128,7 +129,7 @@ impl<'a> AppBody<'a> {
                     },
                     KeyCode::Enter => {
                         let lines  = self.textarea.lines();
-                        self.body_items.iter().for_each(|i| i.name.find(lines[0]));
+                        // self.body_items.iter().for_each(|i| i.name.find(lines[0]));
                     }
                     _ => {}
                 }
