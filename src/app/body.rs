@@ -51,8 +51,8 @@ impl<'a> AppComponent for AppBody<'a> {
                     },
                     KeyCode::Char('H') => self.body_state.select_first(),
                     KeyCode::Char('T') => self.body_state.select_last(),
+                    KeyCode::Char('c') => self.data_model.clear_filter(),
                     KeyCode::Char('s') => self.show_popup = true,
-                    KeyCode::Esc => self.show_popup = false,
                     _ => { return Some(event)}
                 }
             } else {
@@ -87,8 +87,8 @@ impl<'a> AppBody<'a> {
         }
 
         let items = self
-            .data_model.data_items
-            .iter()
+            .data_model.filter()
+            .into_iter()
             .enumerate()
             .map(|(i, val)| {
                 ListItem::from(val)
@@ -110,7 +110,7 @@ impl<'a> AppBody<'a> {
             c.render(popup_area, buf);
 
             self.textarea.set_cursor_line_style(Style::default());
-            self.textarea.set_placeholder_text("Enter a valid float (e.g. 1.56)");
+            self.textarea.set_placeholder_text("Enter a search here: ");
             self.textarea.set_block(Block::bordered().border_type(ratatui::widgets::BorderType::Rounded).title("Enter name: "));
 
             self.textarea.render(popup_area, buf);
@@ -129,8 +129,15 @@ impl<'a> AppBody<'a> {
                     },
                     KeyCode::Enter => {
                         let lines  = self.textarea.lines();
+                        if lines[0].is_empty() {
+                            self.data_model.clear_filter();
+                        } else {
+                            self.data_model.set_filter(&lines[0]);
+                        }
+                        self.show_popup = false;
                         // self.body_items.iter().for_each(|i| i.name.find(lines[0]));
-                    }
+                    },
+                    KeyCode::Esc => self.show_popup = false,
                     _ => {}
                 }
             }

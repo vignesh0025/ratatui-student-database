@@ -115,10 +115,13 @@ impl std::fmt::Display for Class {
 impl<'a> From<&'a StudentListItem> for ListItem<'a> {
     fn from(value: &'a StudentListItem) -> Self {
         let name_header = Line::from(
-            format!("{:<4} {:>20} {:>10} {:>30} {:>20} {:>6}", "ID", "LastName,FirstName", "Age", "Nationality", "City", "Sex")
-                .blue()
-                .bold()
-                .italic(),
+            format!(
+                "{:<4} {:>20} {:>10} {:>30} {:>20} {:>6}",
+                "ID", "LastName,FirstName", "Age", "Nationality", "City", "Sex"
+            )
+            .blue()
+            .bold()
+            .italic(),
         );
         let name_line = Line::from(
             Span::from(format!(
