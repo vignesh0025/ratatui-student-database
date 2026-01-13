@@ -1,7 +1,6 @@
 use crate::app::app_structs::StudentListItem as StudentListEntry;
-use clap::builder::Str;
 use csv;
-use rmp_serde::{Deserializer, Serializer};
+use rmp_serde::Serializer;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::{fs::OpenOptions, io::Write, path::Path};

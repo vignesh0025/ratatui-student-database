@@ -1,12 +1,10 @@
 use ratatui::crossterm::event::{Event, KeyCode};
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
-    style::{Color, Modifier, Style, Styled, Stylize},
-    text::{Line, Span, Text},
-    widgets::{Block, Clear, List, ListItem, ListState, Paragraph, StatefulWidget, Widget},
+    style::{Style, Stylize},
+    widgets::{Block, Clear, List, ListItem, ListState, StatefulWidget, Widget},
 };
 
-use crate::app::app_structs::{Class, StudentListItem, student_list_vec};
 use crate::app::data_model::DataModel;
 use crate::app::{AppComponent, data_model};
 
@@ -14,7 +12,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use std::path::Path;
-use tui_textarea::{Input, Key, TextArea};
+use tui_textarea::TextArea;
 
 #[derive(Default)]
 pub struct AppBody<'a> {

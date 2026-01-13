@@ -1,4 +1,3 @@
-use std::default;
 use std::error::Error;
 use std::path::Path;
 

@@ -1,7 +1,7 @@
 use crate::app::AppComponent;
 use ratatui::crossterm::event::{Event, KeyCode};
-use ratatui::style::{Style, Styled, Stylize};
-use ratatui::widgets::{Block, BorderType, List, ListItem, ListState, Paragraph, StatefulWidget};
+use ratatui::style::{Style, Stylize};
+use ratatui::widgets::{Block, List, ListItem, ListState, StatefulWidget};
 
 pub struct AppMenu {
     is_active: bool,
