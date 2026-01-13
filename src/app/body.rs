@@ -1,11 +1,14 @@
 use ratatui::crossterm::event::{Event, KeyCode};
 use ratatui::{
-    layout::{Constraint, Flex, Layout, Rect}, style::{Color, Modifier, Style, Styled, Stylize}, text::{Line, Span, Text}, widgets::{Block, Clear, List, ListItem, ListState, Paragraph, StatefulWidget, Widget}
+    layout::{Constraint, Flex, Layout, Rect},
+    style::{Color, Modifier, Style, Styled, Stylize},
+    text::{Line, Span, Text},
+    widgets::{Block, Clear, List, ListItem, ListState, Paragraph, StatefulWidget, Widget},
 };
 
-use crate::app::{AppComponent, data_model};
 use crate::app::app_structs::{Class, StudentListItem, student_list_vec};
 use crate::app::data_model::DataModel;
+use crate::app::{AppComponent, data_model};
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -20,7 +23,13 @@ pub struct AppBody<'a> {
     string_logs: Rc<RefCell<Vec<String>>>,
     show_popup: bool,
     textarea: TextArea<'a>,
-    data_model: DataModel
+    data_model: DataModel,
+    dialog_type: Option<DialogType>,
+}
+
+enum DialogType {
+    FilterDialog,
+    Dialog1,
 }
 
 impl<'a> AppComponent for AppBody<'a> {
@@ -32,9 +41,7 @@ impl<'a> AppComponent for AppBody<'a> {
         self.render_body(area, buf);
     }
 
-
     fn handle_event(&mut self, event: Event) -> Option<Event> {
-
         let handled_event: Option<Event> = self.handle_popup_event(event);
 
         if let Some(event) = handled_event {
@@ -48,15 +55,15 @@ impl<'a> AppComponent for AppBody<'a> {
                                 // self.string_logs.borrow_mut().push(s.clone());
                             }
                         }
-                    },
+                    }
                     KeyCode::Char('H') => self.body_state.select_first(),
                     KeyCode::Char('T') => self.body_state.select_last(),
                     KeyCode::Char('c') => self.data_model.clear_filter(),
-                    KeyCode::Char('s') => self.show_popup = true,
-                    _ => { return Some(event)}
+                    KeyCode::Char('s') => self.dialog_type = Some(DialogType::FilterDialog),
+                    _ => return Some(event),
                 }
             } else {
-                return Some(event)
+                return Some(event);
             }
         }
 
@@ -66,16 +73,20 @@ impl<'a> AppComponent for AppBody<'a> {
 
 impl<'a> AppBody<'a> {
     pub fn new(is_active: bool, string_logs: Rc<RefCell<Vec<String>>>) -> Self {
+        let app = AppBody::default();
 
         // let body_items = student_list_vec(&Path::new("./student-dataset.csv")).unwrap();
-        let data_model = DataModel::new(&Path::new("./student-dataset.csv"), data_model::DataType::CsvBin).unwrap();
+        let data_model = DataModel::new(
+            &Path::new("./student-dataset.csv"),
+            data_model::DataType::CsvBin,
+        )
+        .unwrap();
         Self {
             body_state: ListState::default().with_selected(Some(0)),
             is_active,
             string_logs,
-            show_popup: false,
-            textarea: TextArea::default(),
-            data_model
+            data_model,
+            ..app
         }
     }
 
@@ -87,12 +98,11 @@ impl<'a> AppBody<'a> {
         }
 
         let items = self
-            .data_model.filter()
+            .data_model
+            .filter()
             .into_iter()
             .enumerate()
-            .map(|(i, val)| {
-                ListItem::from(val)
-            })
+            .map(|(i, val)| ListItem::from(val))
             .collect::<Vec<_>>();
 
         let list = List::new(items).block(block).highlight_style(
@@ -103,44 +113,52 @@ impl<'a> AppBody<'a> {
 
         StatefulWidget::render(list, area, buf, &mut self.body_state);
 
-        if self.show_popup {
-            let popup_area = popup_area(area, 60, 20);
+        match &self.dialog_type {
+            Some(DialogType::FilterDialog) => {
+                let popup_area = popup_area(area, 60, 20);
 
-            let c = Clear::default();
-            c.render(popup_area, buf);
+                let c = Clear::default();
+                c.render(popup_area, buf);
 
-            self.textarea.set_cursor_line_style(Style::default());
-            self.textarea.set_placeholder_text("Enter a search here: ");
-            self.textarea.set_block(Block::bordered().border_type(ratatui::widgets::BorderType::Rounded).title("Enter name: "));
+                self.textarea.set_cursor_line_style(Style::default());
+                self.textarea.set_placeholder_text("Enter a search here: ");
+                self.textarea.set_block(
+                    Block::bordered()
+                        .border_type(ratatui::widgets::BorderType::Rounded)
+                        .title("Enter name: "),
+                );
 
-            self.textarea.render(popup_area, buf);
+                self.textarea.render(popup_area, buf);
+            }
+            _ => {}
         }
     }
 
-
     fn handle_popup_event(&mut self, event: Event) -> Option<Event> {
-        if self.show_popup {
-            if let Event::Key(key) = &event {
-                match key.code
-                {
-                    KeyCode::Char(_) | KeyCode::Backspace => {
-                        self.textarea.input(event);
-                        return None;
-                    },
-                    KeyCode::Enter => {
-                        let lines  = self.textarea.lines();
-                        if lines[0].is_empty() {
-                            self.data_model.clear_filter();
-                        } else {
-                            self.data_model.set_filter(&lines[0]);
+        match &self.dialog_type {
+            Some(DialogType::FilterDialog) => {
+                if let Event::Key(key) = &event {
+                    match key.code {
+                        KeyCode::Char(_) | KeyCode::Backspace => {
+                            self.textarea.input(event);
+                            return None;
                         }
-                        self.show_popup = false;
-                        // self.body_items.iter().for_each(|i| i.name.find(lines[0]));
-                    },
-                    KeyCode::Esc => self.show_popup = false,
-                    _ => {}
+                        KeyCode::Enter => {
+                            let lines = self.textarea.lines();
+                            if lines[0].is_empty() {
+                                self.data_model.clear_filter();
+                            } else {
+                                self.data_model.set_filter(&lines[0]);
+                            }
+                            self.dialog_type = None;
+                            // self.body_items.iter().for_each(|i| i.name.find(lines[0]));
+                        }
+                        KeyCode::Esc => self.dialog_type = None,
+                        _ => {}
+                    }
                 }
-            }
+            },
+            _ => {}
         }
 
         Some(event)

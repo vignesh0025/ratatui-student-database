@@ -4,11 +4,7 @@ use csv;
 use rmp_serde::{Deserializer, Serializer};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use std::{
-    fs::OpenOptions,
-    io::{Write},
-    path::{Path},
-};
+use std::{fs::OpenOptions, io::Write, path::Path};
 
 #[derive(Default)]
 pub struct DataModel {
@@ -56,11 +52,14 @@ impl DataModel {
         Ok(Self {
             data_items: rec,
             active: true,
-            filter_string: None
+            filter_string: None,
         })
     }
 
-    pub fn set_filter<T>(&mut self, filter_string: T) where T: AsRef<str> {
+    pub fn set_filter<T>(&mut self, filter_string: T)
+    where
+        T: AsRef<str>,
+    {
         let filter_string = filter_string.as_ref();
         self.filter_string = Some(filter_string.into());
     }
@@ -71,15 +70,12 @@ impl DataModel {
 
     pub fn filter(&self) -> Vec<&StudentListEntry> {
         if let Some(s) = &self.filter_string {
-                // let s: &str = s.as_ref();
-                /* We directly converted Vec<StudentListEntry> to Vec<&StudentListEntry> */
-                self.data_items
+            // let s: &str = s.as_ref();
+            /* We directly converted Vec<StudentListEntry> to Vec<&StudentListEntry> */
+            self.data_items
                 .iter()
-                .filter(|f| 
-                    f.name.contains(s)
-                        || f.city.contains(s)
-                        || f.nationality.contains(s)
-                ).collect()
+                .filter(|f| f.name.contains(s) || f.city.contains(s) || f.nationality.contains(s))
+                .collect()
         } else {
             self.data_items.iter().collect()
         }
@@ -94,16 +90,14 @@ impl DataModel {
                         wtr.serialize(entry)?;
                     }
                     wtr.flush()?;
-                },
+                }
                 DataType::MsgPackBin => {
-                    let mut buf = Vec::new();
                     let data = MsgPackContainer {
-                        rec: self.data_items.clone()
+                        rec: self.data_items.clone(),
                     };
-                    data.serialize(&mut Serializer::new(&mut buf))?;
-                    let mut file = OpenOptions::new().write(true).open(path)?;
-                    file.write(&buf)?;
-                    file.flush()?;
+                    let file = OpenOptions::new().write(true).open(path)?;
+                    data.serialize(&mut Serializer::new(file))?;
+                    // file.flush()?;
                 }
             }
         }
