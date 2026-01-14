@@ -11,7 +11,8 @@ pub enum Gender {
     #[default]
     M,
     F,
-    other,
+    #[serde(rename = "other")]
+    Other,
 }
 
 impl std::fmt::Display for Gender {
@@ -86,6 +87,7 @@ impl StudentListItem {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub enum Class {
     #[default]
@@ -140,6 +142,7 @@ impl<'a> From<&'a StudentListItem> for ListItem<'a> {
     }
 }
 
+#[allow(dead_code)]
 pub fn student_list_vec(path: &Path) -> Result<Vec<StudentListItem>, Box<dyn Error>> {
     if path.exists() {
         if path.is_file() {

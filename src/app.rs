@@ -1,6 +1,5 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use ratatui::crossterm::event::{Event, KeyCode};
 use ratatui::layout::{Constraint, Direction, Layout};
@@ -24,7 +23,7 @@ pub struct App {
     app_components: HashMap<ActiveAppWindow, Box<dyn AppComponent>>,
     active_window: ActiveAppWindow,
     // #[allow(dead_code)] // Kept alive to maintain Rc reference count for shared state
-    // string_logs: Rc<RefCell<Vec<String>>>,
+    // string_logs: Rc<Mutex<Vec<String>>>,
 }
 
 impl Default for App {
@@ -35,14 +34,14 @@ impl Default for App {
 
 impl App {
     pub fn new() -> Self {
-        let ref_string_logs = Rc::new(RefCell::new(Vec::new()));
+        let ref_string_logs = Arc::new(Mutex::new(Vec::new()));
         Self {
             quit: false,
             dir: Direction::Vertical,
             app_components: HashMap::from([
                 (
                     ActiveAppWindow::Header,
-                    Box::new(AppBody::new(false, Rc::clone(&ref_string_logs)))
+                    Box::new(AppBody::new(false, Arc::clone(&ref_string_logs)))
                         as Box<dyn AppComponent>,
                 ),
                 (
@@ -51,12 +50,12 @@ impl App {
                 ),
                 (
                     ActiveAppWindow::Body,
-                    Box::new(AppBody::new(true, Rc::clone(&ref_string_logs)))
+                    Box::new(AppBody::new(true, Arc::clone(&ref_string_logs)))
                         as Box<dyn AppComponent>,
                 ),
                 (
                     ActiveAppWindow::Footer,
-                    Box::new(AppFooter::new(false, Rc::clone(&ref_string_logs)))
+                    Box::new(AppFooter::new(false, Arc::clone(&ref_string_logs)))
                         as Box<dyn AppComponent>,
                 ),
             ]),

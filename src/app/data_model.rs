@@ -3,7 +3,7 @@ use csv;
 use rmp_serde::Serializer;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use std::{fs::OpenOptions, io::Write, path::Path};
+use std::{fs::OpenOptions, path::Path};
 
 #[derive(Default)]
 pub struct DataModel {
@@ -35,7 +35,7 @@ impl DataModel {
                     let msgpack_data: MsgPackContainer =
                         MsgPackContainer::deserialize(&mut deserializer).unwrap();
                     rec = msgpack_data.rec;
-                }
+                },
                 DataType::CsvBin => {
                     rec = Vec::new();
                     for item in csv::Reader::from_path(path)?.deserialize() {
@@ -94,7 +94,7 @@ impl DataModel {
                     let data = MsgPackContainer {
                         rec: self.data_items.clone(),
                     };
-                    let file = OpenOptions::new().write(true).open(path)?;
+                    let file = OpenOptions::new().create(true).write(true).open(path)?;
                     data.serialize(&mut Serializer::new(file))?;
                     // file.flush()?;
                 }

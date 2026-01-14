@@ -6,18 +6,16 @@ use ratatui::{
 
 use crate::app::AppComponent;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
+use std::sync::{Arc, Mutex};
 use ratatui::crossterm::event::{Event, KeyCode};
 
 pub struct AppFooter {
     is_active: bool,
-    string_logs: Rc<RefCell<Vec<String>>>,
+    string_logs: Arc<Mutex<Vec<String>>>,
 }
 
 impl AppFooter {
-    pub fn new(is_active: bool, string_logs: Rc<RefCell<Vec<String>>>) -> Self {
+    pub fn new(is_active: bool, string_logs: Arc<Mutex<Vec<String>>>) -> Self {
         Self {
             is_active,
             string_logs,
@@ -33,8 +31,9 @@ impl AppComponent for AppFooter {
             block = block.set_style(Style::new().green());
         }
 
-        let vec_str = &*self.string_logs.borrow();
-        let lines: Vec<Line> = vec_str.iter().map(|s| Line::from(&s[..])).collect();
+        let vec_str = self.string_logs.lock().unwrap();
+        // let vec_str = &*self.string_logs.borrow();
+        let lines: Vec<Line> = vec_str.iter().map(|s| Line::from(&s[..])).rev().collect();
         let p = Paragraph::new(Text::from(lines)).block(block);
 
         p.render(area, buf);
@@ -49,7 +48,8 @@ impl AppComponent for AppFooter {
         if let Event::Key(k) = event {
             match k.code {
                 KeyCode::Char('c') => {
-                    self.string_logs.borrow_mut().clear()
+                    let mut string_logs = self.string_logs.lock().unwrap();
+                    string_logs.clear()
                 },
                 _ => { return Some(event) }
             }

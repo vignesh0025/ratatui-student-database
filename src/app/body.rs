@@ -8,26 +8,26 @@ use ratatui::{
 use crate::app::data_model::DataModel;
 use crate::app::{AppComponent, data_model};
 
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use std::path::Path;
+use std::thread::{self, JoinHandle};
+use std::time::Duration;
 use tui_textarea::TextArea;
 
 #[derive(Default)]
 pub struct AppBody<'a> {
     body_state: ListState,
     is_active: bool,
-    string_logs: Rc<RefCell<Vec<String>>>,
-    show_popup: bool,
+    string_logs: Arc<Mutex<Vec<String>>>,
     textarea: TextArea<'a>,
     data_model: DataModel,
     dialog_type: Option<DialogType>,
+    handle: Option<JoinHandle<()>>,
 }
 
 enum DialogType {
     FilterDialog,
-    Dialog1,
 }
 
 impl<'a> AppComponent for AppBody<'a> {
@@ -49,7 +49,8 @@ impl<'a> AppComponent for AppBody<'a> {
                     KeyCode::Down => self.body_state.select_next(),
                     KeyCode::Enter => {
                         if let Some(e) = self.body_state.selected() {
-                            if let Some(s) = self.data_model.data_items.get(e) {
+                            if let Some(_s) = self.data_model.data_items.get(e) {
+                                todo!();
                                 // self.string_logs.borrow_mut().push(s.clone());
                             }
                         }
@@ -58,6 +59,37 @@ impl<'a> AppComponent for AppBody<'a> {
                     KeyCode::Char('T') => self.body_state.select_last(),
                     KeyCode::Char('c') => self.data_model.clear_filter(),
                     KeyCode::Char('s') => self.dialog_type = Some(DialogType::FilterDialog),
+                    KeyCode::Char('S') => {
+                        self.data_model
+                            .save(data_model::DataType::MsgPackBin, "./msgpack.bin".as_ref())
+                            .expect("Error creating bin");
+                        let mut string_logs = self.string_logs.lock().unwrap();
+                        string_logs.push("Saved to msgpack.bin".into());
+                    }
+                    KeyCode::Char('p') => {
+                        let mut string_logs = self.string_logs.lock().unwrap();
+                        string_logs.push("starting server".into());
+
+                        let string_logs = Arc::clone(&self.string_logs);
+                        self.handle = Some(thread::spawn(move || {
+                            for i in 0..=9 {
+                                thread::sleep(Duration::from_secs(1));
+                                let mut string_logs = string_logs.lock().unwrap();
+                                string_logs.push(format!("Elapsed {} seconds", i));
+                            }
+                        }));
+                    }
+                    KeyCode::Char('d') => {
+                        let mut string_logs = self.string_logs.lock().unwrap();
+
+                        string_logs.push("starting server".into());
+
+                        string_logs.push("Waiting for server to exit".into());
+                        let handle = self.handle.take();
+                        handle.expect("valid handle").join().expect("valid handle");
+                        string_logs.push("Server exited".into());
+                    }
+
                     _ => return Some(event),
                 }
             } else {
@@ -70,7 +102,7 @@ impl<'a> AppComponent for AppBody<'a> {
 }
 
 impl<'a> AppBody<'a> {
-    pub fn new(is_active: bool, string_logs: Rc<RefCell<Vec<String>>>) -> Self {
+    pub fn new(is_active: bool, string_logs: Arc<Mutex<Vec<String>>>) -> Self {
         let app = AppBody::default();
 
         // let body_items = student_list_vec(&Path::new("./student-dataset.csv")).unwrap();
@@ -100,7 +132,7 @@ impl<'a> AppBody<'a> {
             .filter()
             .into_iter()
             .enumerate()
-            .map(|(i, val)| ListItem::from(val))
+            .map(|(_i, val)| ListItem::from(val))
             .collect::<Vec<_>>();
 
         let list = List::new(items).block(block).highlight_style(
@@ -155,7 +187,7 @@ impl<'a> AppBody<'a> {
                         _ => {}
                     }
                 }
-            },
+            }
             _ => {}
         }
 

@@ -16,7 +16,7 @@ impl AppComponent for AppMenu {
                 KeyCode::Up => self.menu_state.select_previous(),
                 KeyCode::Down => self.menu_state.select_next(),
                 KeyCode::Enter => {
-                    if let Some(e) = self.menu_state.selected() {
+                    if let Some(_e) = self.menu_state.selected() {
                         // call some function in AppBody
                         // if let Some(s) = self.body_items.get(e) {
                         //     self.string_logs.borrow_mut().push(s.clone());
